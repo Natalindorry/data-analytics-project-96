@@ -35,16 +35,17 @@ last_paid_click as (
 
 counting as (
     select
-        date(lpc.visit_date) as visit_date,
-        count(lpc.visitor_id) as visitors_count,
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign,
+        date(lpc.visit_date) as visit_date,
+        count(lpc.visitor_id) as visitors_count,
         count(lpc.lead_id) as leads_count,
         count(*) filter (where lpc.status_id = '142') as purchases_count,
         sum(lpc.amount) as revenue
     from last_paid_click as lpc
-    group by 1, 3, 4, 5
+    group by
+        date(lpc.visit_date), lpc.utm_source, lpc.utm_medium, lpc.utm_campaign
 ),
 
 ads as (
@@ -55,7 +56,7 @@ ads as (
         utm_medium,
         utm_campaign
     from vk_ads
-    group by 1, 3, 4, 5)
+    group by campaign_date, utm_source, utm_medium, utm_campaign)
     union all
     (select
         date(campaign_date) as campaign_date,
@@ -64,7 +65,7 @@ ads as (
         utm_medium,
         utm_campaign
     from ya_ads
-    group by 1, 3, 4, 5)
+    group by campaign_date, utm_source, utm_medium, utm_campaign)
 )
 
 select
@@ -85,11 +86,10 @@ left join ads as a
         and c.utm_medium = a.utm_medium
         and c.utm_campaign = a.utm_campaign
 order by
-    revenue desc nulls last,
-    visit_date asc,
-    visitors_count desc,
-    utm_source asc,
-    utm_medium asc,
-    utm_campaign asc
+    c.revenue desc nulls last,
+    c.visit_date asc,
+    c.visitors_count desc,
+    c.utm_source asc,
+    c.utm_medium asc,
+    c.utm_campaign asc
 limit 15;
-
