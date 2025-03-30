@@ -78,28 +78,28 @@ group by created_date;
 -- 3.3. Количество посетителей и лидов по дням (общий график получился ненаглядный...)
 with visitors as (
     select
-        to_char(s.visit_date, 'dd') as day,
+        to_char(s.visit_date, 'dd') as visit_day,
         count(distinct s.visitor_id) as count_visitors
     from sessions as s
-    group by day
+    group by visit_day
 ),
 
 leads_tab as (
     select
-        to_char(l.created_at, 'dd') as day,
+        to_char(l.created_at, 'dd') as visit_day,
         count(distinct l.lead_id) as leads_count
     from leads as l
-    group by day
+    group by visit_day
 )
 
 select
-    v.day,
+    v.visit_day,
     v.count_visitors,
     lt.leads_count
 from visitors as v
 left join leads_tab as lt
-    on v.day = lt.day
-order by v.day;
+    on v.visit_day = lt.visit_day
+order by v.visit_day;
 
 -- 4.1. Конверсия из клика в лид, из лида в платящего клиента
 with total_tab as (
@@ -139,9 +139,9 @@ select
     count(distinct visitor_id) as count_visitors,
     count(distinct lead_id) as count_leads,
     (
-        select count(distinct lead_id)
+        select count(distinct last_paid_click.lead_id)
         from last_paid_click
-        where amount != 0
+        where last_paid_click.amount != 0
     ) as count_buyers
 from last_paid_click;
 
@@ -185,9 +185,9 @@ conversion as (
         count(distinct visitor_id) as count_visitors,
         count(distinct lead_id) as count_leads,
         (
-            select count(distinct lead_id)
+            select count(distinct last_paid_click.lead_id)
             from last_paid_click
-            where amount != 0
+            where last_paid_click.amount != 0
         ) as count_buyers
     from last_paid_click
 )
@@ -208,7 +208,7 @@ from conversion;
     utm_source,
     utm_medium
 from vk_ads
-group by 1, 3, 4)
+group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
 union all
 (select
     to_char(campaign_date, 'dd') as campaign_date,
@@ -216,7 +216,7 @@ union all
     utm_source,
     utm_medium
 from ya_ads
-group by 1, 3, 4)
+group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
 order by campaign_date;
 
 	
@@ -226,35 +226,47 @@ order by campaign_date;
     sum(daily_spent) as total_cost,
     utm_source
 from vk_ads
-group by 1, 3)
+group by to_char(campaign_date, 'dd'), utm_source)
 union all
 (select
     to_char(campaign_date, 'dd') as campaign_date,
     sum(daily_spent) as total_cost,
     utm_source
 from ya_ads
-group by 1, 3)
+group by to_char(campaign_date, 'dd'), utm_source)
 order by campaign_date;
 
 -- 5.3. Затраты по разным каналам в динамике по дням недели
 with tab as (
-    (select
-        extract(isodow from campaign_date) as number_day,
-        to_char(campaign_date, 'Day') as day_of_week,
-        sum(daily_spent) as total_cost,
-        utm_source,
-        utm_medium
-    from vk_ads
-    group by 1, 2, 4, 5)
+    (
+        select
+            extract(isodow from campaign_date) as number_day,
+            to_char(campaign_date, 'Day') as day_of_week,
+            sum(daily_spent) as total_cost,
+            utm_source,
+            utm_medium
+        from vk_ads
+        group by
+            extract(isodow from campaign_date),
+            to_char(campaign_date, 'Day'),
+            utm_source,
+            utm_medium
+    )
     union all
-    (select
-        extract(isodow from campaign_date) as number_day,
-        to_char(campaign_date, 'Day') as day_of_week,
-        sum(daily_spent) as total_cost,
-        utm_source,
-        utm_medium
-    from ya_ads
-    group by 1, 2, 4, 5)
+    (
+        select
+            extract(isodow from campaign_date) as number_day,
+            to_char(campaign_date, 'Day') as day_of_week,
+            sum(daily_spent) as total_cost,
+            utm_source,
+            utm_medium
+        from ya_ads
+        group by
+            extract(isodow from campaign_date),
+            to_char(campaign_date, 'Day'),
+            utm_source,
+            utm_medium
+    )
 )
 
 select
@@ -263,7 +275,7 @@ select
     utm_source,
     utm_medium
 from tab
-group by 1, 2, 3, 4, number_day
+group by day_of_week, total_cost, utm_source, utm_medium, number_day
 order by number_day;
 
 -- 6.1. Маркетинговые метрики, окупаемость по source
@@ -302,36 +314,52 @@ last_paid_click as (
 
 counting as (
     select
-        date(lpc.visit_date) as visit_date,
-        count(lpc.visitor_id) as visitors_count,
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign,
+        date(lpc.visit_date) as visit_date,
+        count(lpc.visitor_id) as visitors_count,
         count(lpc.lead_id) as leads_count,
         count(*) filter (where lpc.status_id = '142') as purchases_count,
         sum(lpc.amount) as revenue
     from last_paid_click as lpc
-    group by 1, 3, 4, 5
+    group by
+        date(lpc.visit_date),
+        lpc.utm_source,
+        lpc.utm_medium,
+        lpc.utm_campaign
 ),
 
 ads as (
-    (select
-        date(campaign_date) as campaign_date,
-        sum(daily_spent) as total_cost,
-        utm_source,
-        utm_medium,
-        utm_campaign
-    from vk_ads
-    group by 1, 3, 4, 5)
+    (
+        select
+            date(campaign_date) as campaign_date,
+            sum(daily_spent) as total_cost,
+            utm_source,
+            utm_medium,
+            utm_campaign
+        from vk_ads
+        group by
+            date(campaign_date),
+            utm_source,
+            utm_medium,
+            utm_campaign
+    )
     union all
-    (select
-        date(campaign_date) as campaign_date,
-        sum(daily_spent) as total_cost,
-        utm_source,
-        utm_medium,
-        utm_campaign
-    from ya_ads
-    group by 1, 3, 4, 5)
+    (
+        select
+            date(campaign_date) as campaign_date,
+            sum(daily_spent) as total_cost,
+            utm_source,
+            utm_medium,
+            utm_campaign
+        from ya_ads
+        group by
+            date(campaign_date),
+            utm_source,
+            utm_medium,
+            utm_campaign
+    )
 )
 
 select
@@ -351,6 +379,7 @@ inner join ads as a
         and c.utm_campaign = a.utm_campaign
 group by c.utm_source;
 
+
 -- 7.1. Сводная таблица затрат и выручки по vk и yandex
 with cost as (
     (select
@@ -358,14 +387,14 @@ with cost as (
         sum(daily_spent) as total_cost,
         utm_source
     from vk_ads
-    group by 1, 3)
+    group by to_char(campaign_date, 'dd'), utm_source)
     union all
     (select
         to_char(campaign_date, 'dd') as campaign_date,
         sum(daily_spent) as total_cost,
         utm_source
     from ya_ads
-    group by 1, 3)
+    group by to_char(campaign_date, 'dd'), utm_source)
 ),
 
 rev as (
@@ -399,7 +428,7 @@ with cost as (
         utm_source,
         utm_medium
     from vk_ads
-    group by 1, 3, 4)
+    group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
     union all
     (select
         to_char(campaign_date, 'dd') as campaign_date,
@@ -407,7 +436,7 @@ with cost as (
         utm_source,
         utm_medium
     from ya_ads
-    group by 1, 3, 4)
+    group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
 ),
 
 rev as (
@@ -479,5 +508,5 @@ select
         order by date_part('day', created_at - visit_date)
     ) as days_to_lead
 from last_paid_click
-group by 1, 2
-order by 3 desc nulls last;
+group by utm_source, utm_medium
+order by days_to_lead desc nulls last;
