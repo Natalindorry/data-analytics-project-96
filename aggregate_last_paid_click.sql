@@ -13,10 +13,10 @@ with total_tab as (
         l.closing_reason,
         l.status_id,
         row_number()
-            over (
-                partition by s.visitor_id
-                order by s.visit_date desc
-            )
+        over (
+            partition by s.visitor_id
+            order by s.visit_date desc
+        )
         as rn
     from sessions as s
     left join leads as l
@@ -50,20 +50,20 @@ counting as (
 
 ads as (
     (select
-        date(campaign_date) as campaign_date,
-        sum(daily_spent) as total_cost,
         utm_source,
         utm_medium,
         utm_campaign
+        date(campaign_date) as campaign_date,
+        sum(daily_spent) as total_cost
     from vk_ads
     group by campaign_date, utm_source, utm_medium, utm_campaign)
     union all
     (select
-        date(campaign_date) as campaign_date,
-        sum(daily_spent) as total_cost,
         utm_source,
         utm_medium,
-        utm_campaign
+        utm_campaign,
+        date(campaign_date) as campaign_date,
+        sum(daily_spent) as total_cost
     from ya_ads
     group by campaign_date, utm_source, utm_medium, utm_campaign)
 )
