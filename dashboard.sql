@@ -24,18 +24,19 @@ group by s.medium;
 
 -- 2.2. Каналы, по которым приходят посетители сайта, по дням
 select
-    to_char(s.visit_date, 'dd') as visit_day,
     s.medium,
+    to_char(s.visit_date, 'dd') as visit_day,
     count(distinct s.visitor_id) as count_visitors
 from sessions as s
 group by visit_day, s.medium;
 
 
--- 2.2.1. Каналы в разрезе vk и yandex, по которым приходят посетители сайта, по дням
+-- 2.2.1. Каналы в разрезе vk и yandex, по которым приходят посетители сайта,
+-- по дням
 select
-    to_char(s.visit_date, 'dd') as visit_day,
     s.source,
     s.medium,
+    to_char(s.visit_date, 'dd') as visit_day,
     count(distinct s.visitor_id) as count_visitors
 from sessions as s
 where s.source = 'vk' or s.source = 'yandex'
@@ -44,8 +45,8 @@ group by visit_day, s.source, s.medium;
 
 -- 2.3. Каналы, по которым приходят посетители сайта, по дням недели
 select
-    to_char(s.visit_date, 'Day') as day_of_week,
     s.medium,
+    to_char(s.visit_date, 'Day') as day_of_week,
     count(distinct s.visitor_id) as count_visitors
 from sessions as s
 group by day_of_week, extract(isodow from visit_date), s.medium
@@ -53,8 +54,8 @@ order by extract(isodow from s.visit_date);
 
 -- 2.4. Каналы, по которым приходят посетители сайта, по неделям
 select
-    extract(week from s.visit_date) as number_of_week,
     s.medium,
+    extract(week from s.visit_date) as number_of_week,
     count(distinct s.visitor_id) as count_visitors
 from sessions as s
 group by number_of_week, s.medium;
@@ -73,9 +74,9 @@ select
     to_char(created_at, 'dd') as created_date,
     count(distinct lead_id) as leads_count
 from leads
-group by created_date;   
+group by created_date;
 
--- 3.3. Количество посетителей и лидов по дням (общий график получился ненаглядный...)
+-- 3.3. Количество посетителей и лидов по дням
 with visitors as (
     select
         to_char(s.visit_date, 'dd') as visit_day,
@@ -115,10 +116,10 @@ with total_tab as (
         l.closing_reason,
         l.status_id,
         row_number()
-            over (
-                partition by s.visitor_id
-                order by s.visit_date desc
-            )
+        over (
+            partition by s.visitor_id
+            order by s.visit_date desc
+        )
         as rn
     from sessions as s
     left join leads as l
@@ -160,10 +161,10 @@ with total_tab as (
         l.closing_reason,
         l.status_id,
         row_number()
-            over (
-                partition by s.visitor_id
-                order by s.visit_date desc
-            )
+        over (
+            partition by s.visitor_id
+            order by s.visit_date desc
+        )
         as rn
     from sessions as s
     left join leads as l
@@ -195,43 +196,43 @@ conversion as (
 select
     count_visitors,
     count_leads,
-    round(count_leads * 100.0 / count_visitors, 2) as per_leads,
     count_buyers,
+    round(count_leads * 100.0 / count_visitors, 2) as per_leads,
     round(count_buyers * 100.0 / count_leads, 2) as per_buyers
 from conversion;
 
 
 -- 5.1. Затраты по разным каналам в динамике по дням
-	(select
-    to_char(campaign_date, 'dd') as campaign_date,
-    sum(daily_spent) as total_cost,
+(select
     utm_source,
-    utm_medium
+    utm_medium,
+    to_char(campaign_date, 'dd') as campaign_date,
+    sum(daily_spent) as total_cost
 from vk_ads
 group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
 union all
 (select
-    to_char(campaign_date, 'dd') as campaign_date,
-    sum(daily_spent) as total_cost,
     utm_source,
-    utm_medium
+    utm_medium,
+    to_char(campaign_date, 'dd') as campaign_date,
+    sum(daily_spent) as total_cost
 from ya_ads
 group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
 order by campaign_date;
 
-	
+
 -- 5.2. Затраты по source по дням
 (select
+    utm_source,
     to_char(campaign_date, 'dd') as campaign_date,
-    sum(daily_spent) as total_cost,
-    utm_source
+    sum(daily_spent) as total_cost
 from vk_ads
 group by to_char(campaign_date, 'dd'), utm_source)
 union all
 (select
+    utm_source,
     to_char(campaign_date, 'dd') as campaign_date,
-    sum(daily_spent) as total_cost,
-    utm_source
+    sum(daily_spent) as total_cost
 from ya_ads
 group by to_char(campaign_date, 'dd'), utm_source)
 order by campaign_date;
@@ -240,11 +241,11 @@ order by campaign_date;
 with tab as (
     (
         select
-            extract(isodow from campaign_date) as number_day,
-            to_char(campaign_date, 'Day') as day_of_week,
-            sum(daily_spent) as total_cost,
             utm_source,
-            utm_medium
+            utm_medium,
+	    extract(isodow from campaign_date) as number_day,
+            to_char(campaign_date, 'Day') as day_of_week,
+            sum(daily_spent) as total_cost
         from vk_ads
         group by
             extract(isodow from campaign_date),
@@ -255,11 +256,11 @@ with tab as (
     union all
     (
         select
-            extract(isodow from campaign_date) as number_day,
-            to_char(campaign_date, 'Day') as day_of_week,
-            sum(daily_spent) as total_cost,
             utm_source,
-            utm_medium
+            utm_medium,
+	    extract(isodow from campaign_date) as number_day,
+            to_char(campaign_date, 'Day') as day_of_week,
+            sum(daily_spent) as total_cost
         from ya_ads
         group by
             extract(isodow from campaign_date),
@@ -292,10 +293,10 @@ with total_tab as (
         l.closing_reason,
         l.status_id,
         row_number()
-            over (
-                partition by s.visitor_id
-                order by s.visit_date desc
-            )
+        over (
+            partition by s.visitor_id
+            order by s.visit_date desc
+        )
         as rn
     from sessions as s
     left join leads as l
@@ -333,11 +334,11 @@ counting as (
 ads as (
     (
         select
-            date(campaign_date) as campaign_date,
-            sum(daily_spent) as total_cost,
             utm_source,
             utm_medium,
-            utm_campaign
+            utm_campaign,
+	    date(campaign_date) as campaign_date,
+            sum(daily_spent) as total_cost
         from vk_ads
         group by
             date(campaign_date),
@@ -348,11 +349,11 @@ ads as (
     union all
     (
         select
-            date(campaign_date) as campaign_date,
-            sum(daily_spent) as total_cost,
             utm_source,
             utm_medium,
-            utm_campaign
+            utm_campaign,
+	    date(campaign_date) as campaign_date,
+            sum(daily_spent) as total_cost
         from ya_ads
         group by
             date(campaign_date),
@@ -383,16 +384,16 @@ group by c.utm_source;
 -- 7.1. Сводная таблица затрат и выручки по vk и yandex
 with cost as (
     (select
-        to_char(campaign_date, 'dd') as campaign_date,
-        sum(daily_spent) as total_cost,
-        utm_source
+        utm_source,
+	to_char(campaign_date, 'dd') as campaign_date,
+        sum(daily_spent) as total_cost
     from vk_ads
     group by to_char(campaign_date, 'dd'), utm_source)
     union all
     (select
-        to_char(campaign_date, 'dd') as campaign_date,
-        sum(daily_spent) as total_cost,
-        utm_source
+        utm_source,
+	to_char(campaign_date, 'dd') as campaign_date,
+        sum(daily_spent) as total_cost
     from ya_ads
     group by to_char(campaign_date, 'dd'), utm_source)
 ),
@@ -423,18 +424,18 @@ group by c.utm_source;
 -- 7.2. Сводная таблица затрат и выручки по каналам vk и yandex по дням
 with cost as (
     (select
-        to_char(campaign_date, 'dd') as campaign_date,
-        sum(daily_spent) as total_cost,
         utm_source,
-        utm_medium
+        utm_medium,
+	to_char(campaign_date, 'dd') as campaign_date,
+        sum(daily_spent) as total_cost
     from vk_ads
     group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
     union all
     (select
-        to_char(campaign_date, 'dd') as campaign_date,
-        sum(daily_spent) as total_cost,
         utm_source,
-        utm_medium
+        utm_medium,
+	to_char(campaign_date, 'dd') as campaign_date,
+        sum(daily_spent) as total_cost
     from ya_ads
     group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
 ),
@@ -481,10 +482,10 @@ with total_tab as (
         l.closing_reason,
         l.status_id,
         row_number()
-            over (
-                partition by s.visitor_id
-                order by s.visit_date desc
-            )
+        over (
+            partition by s.visitor_id
+            order by s.visit_date desc
+        )
         as rn
     from sessions as s
     left join leads as l
