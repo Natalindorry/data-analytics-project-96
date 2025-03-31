@@ -52,7 +52,7 @@ ads as (
     (select
         utm_source,
         utm_medium,
-        utm_campaign
+        utm_campaign,
         date(campaign_date) as campaign_date,
         sum(daily_spent) as total_cost
     from vk_ads
