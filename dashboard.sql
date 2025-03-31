@@ -243,7 +243,7 @@ with tab as (
         select
             utm_source,
             utm_medium,
-	    extract(isodow from campaign_date) as number_day,
+            extract(isodow from campaign_date) as number_day,
             to_char(campaign_date, 'Day') as day_of_week,
             sum(daily_spent) as total_cost
         from vk_ads
@@ -258,7 +258,7 @@ with tab as (
         select
             utm_source,
             utm_medium,
-	    extract(isodow from campaign_date) as number_day,
+            extract(isodow from campaign_date) as number_day,
             to_char(campaign_date, 'Day') as day_of_week,
             sum(daily_spent) as total_cost
         from ya_ads
@@ -337,7 +337,7 @@ ads as (
             utm_source,
             utm_medium,
             utm_campaign,
-	    date(campaign_date) as campaign_date,
+            date(campaign_date) as campaign_date,
             sum(daily_spent) as total_cost
         from vk_ads
         group by
@@ -352,7 +352,7 @@ ads as (
             utm_source,
             utm_medium,
             utm_campaign,
-	    date(campaign_date) as campaign_date,
+            date(campaign_date) as campaign_date,
             sum(daily_spent) as total_cost
         from ya_ads
         group by
@@ -385,14 +385,14 @@ group by c.utm_source;
 with cost as (
     (select
         utm_source,
-	to_char(campaign_date, 'dd') as campaign_date,
+        to_char(campaign_date, 'dd') as campaign_date,
         sum(daily_spent) as total_cost
     from vk_ads
     group by to_char(campaign_date, 'dd'), utm_source)
     union all
     (select
         utm_source,
-	to_char(campaign_date, 'dd') as campaign_date,
+        to_char(campaign_date, 'dd') as campaign_date,
         sum(daily_spent) as total_cost
     from ya_ads
     group by to_char(campaign_date, 'dd'), utm_source)
@@ -426,7 +426,7 @@ with cost as (
     (select
         utm_source,
         utm_medium,
-	to_char(campaign_date, 'dd') as campaign_date,
+        to_char(campaign_date, 'dd') as campaign_date,
         sum(daily_spent) as total_cost
     from vk_ads
     group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
@@ -434,7 +434,7 @@ with cost as (
     (select
         utm_source,
         utm_medium,
-	to_char(campaign_date, 'dd') as campaign_date,
+        to_char(campaign_date, 'dd') as campaign_date,
         sum(daily_spent) as total_cost
     from ya_ads
     group by to_char(campaign_date, 'dd'), utm_source, utm_medium)
